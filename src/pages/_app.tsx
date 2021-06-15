@@ -1,18 +1,31 @@
 import { AppProps } from "next/app";
+import { useRouter } from "next/router";
 import NextNprogress from "nextjs-progressbar";
+import { useEffect } from "react";
 
 import { ChakraProvider } from "@chakra-ui/react";
 
 import { Layout } from "../components/Layout";
-import { useHydrate } from "../lib/store";
-import { StoreProvider } from "../lib/zustandProvider";
+import * as gtag from "../lib/gtag";
+import { Provider, useHydrate } from "../lib/store";
 import theme from "../theme";
 
 function MyApp({ Component, pageProps }: AppProps) {
   const store = useHydrate(pageProps.initialZustandState);
+  const router = useRouter();
+  useEffect(() => {
+    const handleRouteChange = (url: URL) => {
+      gtag.pageview(url);
+    };
+    router.events.on("routeChangeComplete", handleRouteChange);
+    return () => {
+      router.events.off("routeChangeComplete", handleRouteChange);
+    };
+  }, [router.events]);
+
   return (
     <ChakraProvider resetCSS theme={theme}>
-      <StoreProvider store={store}>
+      <Provider initialStore={store}>
         <Layout height="100vh">
           <NextNprogress
             color="#FFFF00"
@@ -22,7 +35,7 @@ function MyApp({ Component, pageProps }: AppProps) {
           />
           <Component {...pageProps} />
         </Layout>
-      </StoreProvider>
+      </Provider>
     </ChakraProvider>
   );
 }
